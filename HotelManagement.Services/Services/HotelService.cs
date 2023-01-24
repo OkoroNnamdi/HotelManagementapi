@@ -6,7 +6,9 @@ using HotelManagement.Core.IRepositories;
 using HotelManagement.Core.IServices;
 using HotelManagement.Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Bcpg.OpenPgp;
 using System.Collections.Generic;
+using System.Data.Entity;
 
 namespace HotelManagement.Services.Services
 {
@@ -120,15 +122,15 @@ namespace HotelManagement.Services.Services
 
                 return Response<List<GetRoomDto>>.Fail(ex.Message);
             }
-           
+
         }
 
-         public async Task<Response<GetRoomDto>> GetAvailableRoomsBy(string HotelName, string roomId)
+        public async Task<Response<GetRoomDto>> GetAvailableRoomsBy(string HotelName, string roomId)
         {
             try
             {
                 var room = _unitOfWork.hotelRepository.GetByIdAsync(x => x.Name.ToLower().Trim() == HotelName.ToLower().Trim())
-                .Result.RoomTypes.SelectMany(x => x.Rooms).Where(x=>x.IsBooked == false && x.Id == roomId).FirstOrDefault();
+                .Result.RoomTypes.SelectMany(x => x.Rooms).Where(x => x.IsBooked == false && x.Id == roomId).FirstOrDefault();
                 var data = _mapper.Map<GetRoomDto>(room);
                 if (data == null) return Response<GetRoomDto>.Fail($"{HotelName} Has No Room Available");
                 return Response<GetRoomDto>.Success(HotelName, data);
@@ -166,21 +168,30 @@ namespace HotelManagement.Services.Services
                 {
                     return Response<string>.Fail("Please enter HotelID");
                 }
-                var hotelTodelete = await _unitOfWork.hotelRepository.GetByIdAsync (x=>x.Id == id);
+                var hotelTodelete = await _unitOfWork.hotelRepository.GetByIdAsync(x => x.Id == id);
                 if (hotelTodelete == null)
                     return Response<string>.Fail($"Hotel with {id} doesnot exist");
+
                 await _unitOfWork.hotelRepository.DeleteAsync<string>(id);
-                   _unitOfWork.SaveChanges();
-                return Response<string>.Success($"Hotel with {id} Sucessful Deleted", hotelTodelete.Name );
- 
-    }
+                _unitOfWork.SaveChanges();
+                return Response<string>.Success($"Hotel with {id} Sucessful Deleted", hotelTodelete.Name);
+
+            }
             catch (Exception ex)
             {
 
                 return Response<string>.Fail(ex.Message);
             };
-           
+
+
         }
+
+
+
+
+
+
+
 
         public async Task<Response<UpdateHotelDto>> PatchHotel(string Id, UpdateHotelDto update)
         {
